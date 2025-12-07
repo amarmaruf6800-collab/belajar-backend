@@ -122,3 +122,4 @@ app.post("/login", (req, res) => {
 app.listen(port, () => {
   console.log(`server jalan di http://localhost:${port}`);
 });
+module.exports = app;
