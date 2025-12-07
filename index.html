@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Gudang Kelontong</title>
+    <style>
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+      }
+      th {
+        background-color: #f2f2f2;
+      }
+      .btn-red {
+        background: red;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        cursor: pointer;
+      }
+      .btn-yellow {
+        background: orange;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Manajemen Stok Gudang</h2>
+
+    <div style="background: #eee; padding: 15px">
+      <input type="hidden" id="idBarang" />
+      <input type="text" id="nama" placeholder="Nama Barang" />
+      <input type="number" id="harga" placeholder="Harga" />
+      <input type="number" id="stok" placeholder="Stok" />
+      <button onclick="simpanData()">SIMPAN / UPDATE</button>
+      <button onclick="resetForm()">Batal</button>
+      <button onclick="logout()" style="background: red; color: white">
+        LOGOUT
+      </button>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nama Barang</th>
+          <th>Harga</th>
+          <th>Stok</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="tabelData"></tbody>
+    </table>
+
+    <script>
+      // --- SECURITY CHECK (SATPAM) ---
+      const status = localStorage.getItem("statusLogin");
+
+      if (status !== "sudah_login") {
+        alert("Eits! Anda harus login dulu!");
+        window.location.href = "login.html"; // Tendang ke login
+      }
+      // -------------------------------
+      const API_URL = "http://localhost:3000/barang";
+
+      // 1. GET DATA
+      async function ambilData() {
+        const response = await fetch(API_URL);
+        const data = await response.json();
+
+        let html = "";
+        data.forEach((item) => {
+          html += `
+                    <tr>
+                        <td>${item.id}</td>
+                        <td>${item.nama_barang}</td>
+                        <td>Rp ${item.harga}</td>
+                        <td>${item.stok} pcs</td>
+                        <td>
+                            <button class="btn-yellow" onclick="isiFormEdit(${item.id}, '${item.nama_barang}', ${item.harga}, ${item.stok})">Edit</button>
+                            <button class="btn-red" onclick="hapusData(${item.id})">Hapus</button>
+                        </td>
+                    </tr>
+                `;
+        });
+        document.getElementById("tabelData").innerHTML = html;
+      }
+
+      // 2. DELETE DATA
+      async function hapusData(id) {
+        if (confirm("Yakin mau hapus barang ini?")) {
+          await fetch(`${API_URL}/${id}`, { method: "DELETE" }); // Panggil route DELETE /barang/:id
+          ambilData(); // Refresh tabel
+        }
+      }
+
+      // 3. LOGIKA TOMBOL SIMPAN (Bisa jadi INSERT atau UPDATE)
+      async function simpanData() {
+        const id = document.getElementById("idBarang").value;
+        const nama = document.getElementById("nama").value;
+        const harga = document.getElementById("harga").value;
+        const stok = document.getElementById("stok").value;
+
+        const dataKirim = { nama_barang: nama, harga: harga, stok: stok };
+
+        if (!id) {
+          // KALAU ID KOSONG = BERARTI NAMBAH DATA BARU (POST)
+          await fetch(API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(dataKirim),
+          });
+        } else {
+          // KALAU ID ADA ISINYA = BERARTI UPDATE DATA LAMA (PUT)
+          await fetch(`${API_URL}/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(dataKirim),
+          });
+        }
+
+        resetForm();
+        ambilData();
+      }
+
+      // Helper: Memindahkan data dari tabel ke form input
+      function isiFormEdit(id, nama, harga, stok) {
+        document.getElementById("idBarang").value = id;
+        document.getElementById("nama").value = nama;
+        document.getElementById("harga").value = harga;
+        document.getElementById("stok").value = stok;
+      }
+
+      function resetForm() {
+        document.getElementById("idBarang").value = "";
+        document.getElementById("nama").value = "";
+        document.getElementById("harga").value = "";
+        document.getElementById("stok").value = "";
+      }
+      function logout() {
+        localStorage.removeItem("statusLogin"); // Hapus tiket masuk
+        window.location.href = "login.html";
+      }
+      ambilData();
+    </script>
+  </body>
+</html>
