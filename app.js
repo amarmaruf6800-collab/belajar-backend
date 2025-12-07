@@ -35,8 +35,10 @@ app.get("/barang", (req, res) => {
   const sql = "SELECT * FROM barang";
 
   db.query(sql, (err, data) => {
+    // Ubah bagian ini:
     if (err) {
-      res.status(500).send("ada eror saat ambil data");
+      console.error(err); // Biar muncul di log
+      res.status(500).send("Error Database: " + err.message); // Biar muncul di browser
     } else {
       res.json(data);
     }
