@@ -2,16 +2,20 @@ const express = require("express");
 const mysql = require("mysql2");
 const cors = require("cors");
 const app = express();
-const port = 3000;
+const port = 4000;
 
 app.use(cors());
 app.use(express.json());
 
 const db = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "barang_db",
+  host: "gateway01.ap-southeast-1.prod.aws.tidbcloud.com",
+  user: "3nZhmGmS9EnKbZH.root",
+  password: "TorIj4eXEced547B",
+  database: "test",
+  port: 4000,
+  ssl: {
+    rejectUnauthorized: true,
+  },
 });
 
 //cek koneksi
