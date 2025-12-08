@@ -2,7 +2,7 @@ const express = require("express");
 const mysql = require("mysql2");
 const cors = require("cors");
 const app = express();
-const port = 4000;
+const port = 4000; // <--- SUDAH SAYA GANTI JADI 4000 (Biar cocok sama Frontend)
 
 app.use(cors());
 app.use(express.json());
@@ -10,7 +10,7 @@ app.use(express.json());
 const db = mysql.createConnection({
   host: "gateway01.ap-southeast-1.prod.aws.tidbcloud.com",
   user: "3nZhmGmS9EnKbZH.root",
-  password: "TorIj4eXEced547B",
+  password: "kNxKIMp0MnEmivcR",
   database: "test",
   port: 4000,
   ssl: {
@@ -18,113 +18,86 @@ const db = mysql.createConnection({
   },
 });
 
-//cek koneksi
 db.connect((err) => {
   if (err) {
-    console.error("gagal konek ke database:", err);
+    console.error("Gagal konek database:", err);
   } else {
-    console.log("berhasil konek ke database mysql");
+    console.log("Berhasil konek ke database MySQL!");
   }
 });
-app.get("/", (req, res) => {
-  res.send("server backend nyala");
-});
 
-//route barang ambil dari db
-app.get("/barang", (req, res) => {
-  const sql = "SELECT * FROM barang";
-
-  db.query(sql, (err, data) => {
-    // Ubah bagian ini:
-    if (err) {
-      console.error(err); // Biar muncul di log
-      res.status(500).send("Error Database: " + err.message); // Biar muncul di browser
-    } else {
-      res.json(data);
-    }
-  });
-});
-
-//POST
-app.post("/barang", (req, res) => {
-  const { nama_barang, kategori, harga, stok } = req.body;
-
-  const sql =
-    "INSERT INTO barang (nama_barang, kategori, harga, stok) VALUES (?, ?, ?, ?)";
-
-  db.query(sql, [nama_barang, kategori, harga, stok], (err, result) => {
-    if (err) {
-      res.status(500).send("gagal simpan data");
-    } else {
-      res.status(201).json({
-        pesan: "berhasil nambah data!",
-        dataBaru: { nama_barang, kategori, harga, stok },
-      });
-    }
-  });
-});
-
-//DELETE
-app.delete("/barang/:id", (req, res) => {
-  const id = req.params.id;
-
-  const sql = `DELETE FROM barang WHERE id = ?`;
-
-  db.query(sql, [id], (err, result) => {
-    if (err) {
-      res.status(500).send(err);
-    } else {
-      res.json({ pesan: "Data berhasil dihapus" });
-    }
-  });
-});
-
-// PUT
-app.put("/barang/:id", (req, res) => {
-  const id = req.params.id;
-  const { nama_barang, kategori, harga, stok } = req.body; // Data baru dari frontend
-
-  const sql = `UPDATE barang SET nama_barang = ?,kategori = ?, harga = ?, stok = ? WHERE id = ?`;
-
-  db.query(sql, [nama_barang, kategori, harga, stok, id], (err, result) => {
-    if (err) {
-      res.status(500).send(err);
-    } else {
-      res.json({ pesan: "Data berhasil diupdate" });
-    }
-  });
-});
-
-//login
+// ==========================================
+// 1. RUTE LOGIN (YANG HILANG TADI)
+// ==========================================
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
 
+  // Cek ke tabel admin
   const sql = "SELECT * FROM admin WHERE username = ? AND password = ?";
 
-  db.query(sql, [username, password], (err, result) => {
-    if (err) {
-      res.status(500).send("erorr server");
+  db.query(sql, [username, password], (err, data) => {
+    if (err)
+      return res.status(500).json({ success: false, pesan: "Error server" });
+
+    if (data.length > 0) {
+      // Ketemu user yang cocok
+      res.json({ success: true, pesan: "Login Berhasil" });
     } else {
-      if (result.length > 0) {
-        res.json({
-          success: true,
-          pesan: "login berhasil",
-          token: "ini_token_rahasia_12345",
-        });
-      } else {
-        res.status(401).json({
-          success: false,
-          pesan: "Username atau password salah",
-        });
-      }
+      // Tidak ketemu
+      res
+        .status(401)
+        .json({ success: false, pesan: "Username/Password Salah!" });
     }
   });
 });
 
-if (require.main === module) {
-  app.listen(port, () => {
-    console.log(`Server jalan di port ${port}`);
+// ==========================================
+// 2. RUTE BARANG (CRUD)
+// ==========================================
+// Ambil semua barang
+app.get("/barang", (req, res) => {
+  db.query("SELECT * FROM barang", (err, data) => {
+    if (err) return res.status(500).send("Error ambil data");
+    res.json(data);
   });
-}
+});
 
-module.exports = app;
+// Tambah barang
+app.post("/barang", (req, res) => {
+  const { nama_barang, kategori, harga, stok } = req.body;
+  const sql =
+    "INSERT INTO barang (nama_barang, kategori, harga, stok) VALUES (?, ?, ?, ?)";
+  db.query(sql, [nama_barang, kategori, harga, stok], (err, result) => {
+    if (err) return res.status(500).send("Gagal simpan");
+    res.json({ pesan: "Berhasil disimpan" });
+  });
+});
+
+// Update barang
+app.put("/barang/:id", (req, res) => {
+  const { nama_barang, kategori, harga, stok } = req.body;
+  const sql =
+    "UPDATE barang SET nama_barang=?, kategori=?, harga=?, stok=? WHERE id=?";
+  db.query(
+    sql,
+    [nama_barang, kategori, harga, stok, req.params.id],
+    (err, result) => {
+      if (err) return res.status(500).send("Gagal update");
+      res.json({ pesan: "Berhasil update" });
+    }
+  );
+});
+
+// Hapus barang
+app.delete("/barang/:id", (req, res) => {
+  const sql = "DELETE FROM barang WHERE id=?";
+  db.query(sql, [req.params.id], (err, result) => {
+    if (err) return res.status(500).send("Gagal hapus");
+    res.json({ pesan: "Berhasil hapus" });
+  });
+});
+
+// Jalankan Server
+app.listen(port, () => {
+  console.log(`Server Backend jalan di http://localhost:${port}`);
+});
